@@ -5,7 +5,7 @@ import json
 app = Flask(__name__)
 
 def get_db_connection():
-    connection = sqlite3.connect("C:/Users/igogo/Desktop/Sol/taganrog_sights.db")
+    connection = sqlite3.connect("C:/Users/taganrog_sights.db")
     connection.row_factory = sqlite3.Row
     return connection
 
