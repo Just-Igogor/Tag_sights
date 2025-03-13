@@ -1,11 +1,13 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template_string
 import sqlite3
 import json
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 def get_db_connection():
-    connection = sqlite3.connect("C:/Users/taganrog_sights.db")
+    connection = sqlite3.connect("../taganrog_sights.db")
     connection.row_factory = sqlite3.Row
     return connection
 
@@ -40,6 +42,7 @@ def add_sight():
     latitude = data.get('latitude')
     longitude = data.get('longitude')
     description = data.get('description')
+    type = data.get('type')
 
     if not all([name, address, latitude, longitude]):
         return jsonify({"error": "Missing required fields"}), 400
@@ -48,10 +51,10 @@ def add_sight():
     cursor = connection.cursor()
     cursor.execute(
         """
-        INSERT INTO sights (name, address, latitude, longitude, description)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO sights (name, address, latitude, longitude, description, type)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (name, address, latitude, longitude, description)
+        (name, address, latitude, longitude, description, type)
     )
     connection.commit()
     connection.close()
@@ -63,6 +66,7 @@ def update_sight(sight_id):
     name = data.get('name')
     address = data.get('address')
     description = data.get('description')
+    type = data.get('type')
 
     connection = get_db_connection()
     cursor = connection.cursor()
@@ -72,9 +76,10 @@ def update_sight(sight_id):
         SET name = COALESCE(?, name),
             address = COALESCE(?, address),
             description = COALESCE(?, description)
+            type = COALESCE(?, type)
         WHERE id = ?
         """,
-        (name, address, description, sight_id)
+        (name, address, description, sight_id, type)
     )
     connection.commit()
     connection.close()
