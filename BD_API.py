@@ -6,6 +6,73 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
+
+# Глобальная переменная для хранения координат пользователя
+user_location = {'latitude': None, 'longitude': None}
+
+# Главная страница с трекером геолокации, использующим satellite-определение (enableHighAccuracy)
+@app.route('/')
+def index():
+    return render_template_string('''
+<html>
+  <head>
+    <title>User Location Tracker</title>
+  </head>
+  <body>
+    <h1>Отслеживание местоположения пользователя (с использованием спутниковых данных)</h1>
+    <p id="location">Ожидание определения местоположения...</p>
+    <script>
+      function updateLocation(position) {
+        var lat = position.coords.latitude;
+        var lon = position.coords.longitude;
+        document.getElementById('location').innerHTML = "Широта: " + lat + ", Долгота: " + lon;
+        fetch('/update_location', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({latitude: lat, longitude: lon})
+        });
+      }
+      function handleError(error) {
+        console.warn('Ошибка (' + error.code + '): ' + error.message);
+      }
+      // Обновление координат каждую секунду с использованием высокоточной геолокации
+      setInterval(function() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(updateLocation, handleError, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+          });
+        } else {
+          document.getElementById('location').innerHTML = "Геолокация не поддерживается вашим браузером.";
+        }
+      }, 1000);
+    </script>
+  </body>
+</html>
+''')
+
+# Эндпоинт для обновления координат пользователя
+@app.route('/update_location', methods=['POST'])
+def update_location():
+    data = request.get_json()
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
+    if latitude is None or longitude is None:
+        return jsonify({"error": "Отсутствуют необходимые координаты"}), 400
+    global user_location
+    user_location['latitude'] = latitude
+    user_location['longitude'] = longitude
+    return jsonify({"message": "Координаты обновлены успешно"})
+
+# Эндпоинт для получения текущих координат пользователя
+@app.route('/get_location', methods=['GET'])
+def get_location():
+    return jsonify(user_location)
+
+
 def get_db_connection():
     connection = sqlite3.connect("../taganrog_sights.db")
     connection.row_factory = sqlite3.Row
